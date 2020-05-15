@@ -41,12 +41,12 @@ namespace Navyblue.Extension.Configuration.Consul
         {
             this._data.Clear();
 
-            using (var reader = new StreamReader(input))
-            using (JsonDocument doc = JsonDocument.Parse(reader.ReadToEnd(), new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip }))
+            using (StreamReader reader = new StreamReader(input))
+            using (JsonDocument doc = JsonDocument.Parse(reader.ReadToEnd(), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip }))
             {
-                if (doc.RootElement.Type != JsonValueType.Object)
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
                 {
-                    throw new FormatException(Resources.FormatError_UnsupportedJSONToken(doc.RootElement.Type));
+                    throw new FormatException(Resources.FormatError_UnsupportedJSONToken(doc.RootElement.ValueKind));
                 }
 
                 this.VisitElement(serviceKey, doc.RootElement);
@@ -57,7 +57,7 @@ namespace Navyblue.Extension.Configuration.Consul
 
         private void VisitElement(string serviceKey, JsonElement element)
         {
-            foreach (var property in element.EnumerateObject())
+            foreach (JsonProperty property in element.EnumerateObject())
             {
                 this.EnterContext(property.Name);
                 this.VisitValue(serviceKey, property.Value);
@@ -67,15 +67,15 @@ namespace Navyblue.Extension.Configuration.Consul
 
         private void VisitValue(string serviceKey, JsonElement value)
         {
-            switch (value.Type)
+            switch (value.ValueKind)
             {
-                case JsonValueType.Object:
+                case JsonValueKind.Object:
                     this.VisitElement(serviceKey, value);
                     break;
 
-                case JsonValueType.Array:
-                    var index = 0;
-                    foreach (var arrayElement in value.EnumerateArray())
+                case JsonValueKind.Array:
+                    int index = 0;
+                    foreach (JsonElement arrayElement in value.EnumerateArray())
                     {
                         this.EnterContext(index.ToString());
                         this.VisitValue(serviceKey, arrayElement);
@@ -85,12 +85,12 @@ namespace Navyblue.Extension.Configuration.Consul
 
                     break;
 
-                case JsonValueType.Number:
-                case JsonValueType.String:
-                case JsonValueType.True:
-                case JsonValueType.False:
-                case JsonValueType.Null:
-                    var key = serviceKey + ":" + this._currentPath;
+                case JsonValueKind.Number:
+                case JsonValueKind.String:
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                case JsonValueKind.Null:
+                    string key = serviceKey + ":" + this._currentPath;
                     if (this._data.ContainsKey(key))
                     {
                         throw new FormatException(Resources.FormatError_KeyIsDuplicated(key));
@@ -100,7 +100,7 @@ namespace Navyblue.Extension.Configuration.Consul
                     break;
 
                 default:
-                    throw new FormatException(Resources.FormatError_UnsupportedJSONToken(value.Type));
+                    throw new FormatException(Resources.FormatError_UnsupportedJSONToken(value.ValueKind));
             }
         }
     }

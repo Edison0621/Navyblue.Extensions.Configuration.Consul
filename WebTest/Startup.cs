@@ -58,7 +58,7 @@ namespace WebTest
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0).AddMvcOptions(p=>p.EnableEndpointRouting=false);
-            var consulProvider = this.ConfigurationRoot.Providers.Where(p => p.GetType() == typeof(ConsulConfigurationProvider)).ToList();
+            var consulProvider = this.ConfigurationRoot.Providers.Where(p => p is ConsulConfigurationProvider).ToList();
             var configurationSection = this.ConfigurationRoot.GetChildren();
         }
     }

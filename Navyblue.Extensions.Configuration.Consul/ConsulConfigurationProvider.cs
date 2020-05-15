@@ -51,7 +51,12 @@ namespace Navyblue.Extension.Configuration.Consul
             }
             catch (AggregateException aggregateException)
             {
-                throw aggregateException.InnerException;
+                if (aggregateException.InnerException != null)
+                {
+                    throw aggregateException.InnerException;
+                }
+
+                throw;
             }
         }
     }

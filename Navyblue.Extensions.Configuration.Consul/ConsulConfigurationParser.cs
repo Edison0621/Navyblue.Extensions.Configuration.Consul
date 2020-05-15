@@ -43,10 +43,10 @@ namespace Navyblue.Extension.Configuration.Consul
         /// <returns></returns>
         public async Task<IDictionary<string, string>> GetConfig(bool reloading, IConsulConfigurationSource source)
         {
-            try
+            QueryResult<KVPair> kvPair = await this.GetKvPairs(source.ServiceKey, source.QueryOptions, source.CancellationToken).ConfigureAwait(false);
+            switch (kvPair?.Response)
             {
-                QueryResult<KVPair> kvPair = await this.GetKvPairs(source.ServiceKey, source.QueryOptions, source.CancellationToken).ConfigureAwait(false);
-                if ((kvPair?.Response == null) && !source.Optional)
+                case null when !source.Optional:
                 {
                     if (!reloading)
                     {
@@ -55,19 +55,12 @@ namespace Navyblue.Extension.Configuration.Consul
 
                     return new Dictionary<string, string>();
                 }
-
-                if (kvPair?.Response == null)
-                {
+                case null:
                     throw new FormatException(Resources.Error_ValueNotExist(source.ServiceKey));
-                }
+                default:
+                    this.UpdateLastIndex(kvPair);
 
-                this.UpdateLastIndex(kvPair);
-
-                return JsonConfigurationFileParser.Parse(source.ServiceKey, new MemoryStream(kvPair.Response.Value));
-            }
-            catch (Exception exception)
-            {
-                throw exception;
+                    return JsonConfigurationFileParser.Parse(source.ServiceKey, new MemoryStream(kvPair.Response.Value));
             }
         }
 
@@ -125,19 +118,12 @@ namespace Navyblue.Extension.Configuration.Consul
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                try
+                if (await this.IsValueChanged(key, cancellationToken).ConfigureAwait(false))
                 {
-                    if (await this.IsValueChanged(key, cancellationToken).ConfigureAwait(false))
-                    {
-                        ConfigurationReloadToken previousToken = Interlocked.Exchange(ref this.reloadToken, new ConfigurationReloadToken());
-                        previousToken.OnReload();
+                    ConfigurationReloadToken previousToken = Interlocked.Exchange(ref this.reloadToken, new ConfigurationReloadToken());
+                    previousToken.OnReload();
 
-                        return;
-                    }
-                }
-                catch (Exception exception)
-                {
-                    throw exception;
+                    return;
                 }
             }
         }

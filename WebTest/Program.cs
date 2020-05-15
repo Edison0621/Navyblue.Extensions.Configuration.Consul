@@ -13,7 +13,6 @@
 
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Navyblue.Extension.Configuration.Consul;
 using System;
 using System.Threading;
